@@ -25,16 +25,17 @@ class Solver(object):
         self.dataset = dataset
         self.log_dir = config.log_dir
         # self.logrs = config.logrs
-
-    def compute_pairwise_l2distance(self):
+    
+    def compute_pairwise_l1distance(self):
+        print('ues L1 norm to compute the distance')
         num_samples = len(self.dataset)
         samples = self.dataset.samples
-        # pdb.set_trace()
-        R,C = np.triu_indices(num_samples,1)    # Denote N = num_samples
-        pair_innerdot = np.einsum('ij,ij->i', samples[R,:], samples[C,:]) 
-        # shape: (Nx(N-1)/2,) items are uptriangular part of mat [(Xi, Xj)], () denotes inner product
-        norm = np.einsum('ij,ij->i', samples, samples)  # shape: (N,)
-        return norm[R] + norm[C] - 2*pair_innerdot
+        R, C = np.triu_indices(num_samples, 1)  # Denote N = num_samples
+        # R, C contain the row indexs and column indexs of upper-triangular part
+        # shape: (Nx(N-1)/2,)
+        l1norm = np.abs(samples[R, :] - samples[C, :]).sum(-1)
+
+        return l1norm
         
     def compute_Cr(self, distances, r):
         return np.sum(distances < r) / len(distances)
@@ -44,7 +45,7 @@ class Solver(object):
         assert int(step) > 0
         logrs = np.linspace(float(start), float(end), num=int(step))
         rs = np.exp(logrs)
-        distances = self.compute_pairwise_l2distance()
+        distances = self.compute_pairwise_l1distance()
 
         logCrs = []
         for r in rs:
@@ -55,22 +56,6 @@ class Solver(object):
         logCrs_d = logCrs_d[np.isfinite(logCrs_d)]
         # remove the nan and inf from logCrs_d
         print("candidate estiamted instrinsic dim: {}".format(logCrs_d))
-        plt.figure()
-        plt.plot(logrs, logCrs)
-        # plt.rc('xtick', labelsize=16)
-        plt.xlim([min(logrs), max(logrs)])
-        plt.xlabel('ln(r)', fontsize=16)
-        plt.ylabel('ln(Cm(r)', fontsize=16)
-
-        # plt.title("Estimated intrinsic dim: {}".format(max(logCrs_d)), fontsize=16)
-        # save the intrinsic dim to one decimal points
-        # format(max(logCrs_d), '.2f')
-        plt.title("Estimated intrinsic dim: {}".format(format(max(logCrs_d), '.1f')), fontsize=16)
-        print("the max instrinsic dim is: {}".format(max(logCrs_d)))
-        print("Save curve to {figdir}/curve_dim40.1.png".format(figdir=os.path.dirname(self.log_dir)))
-        # pdb.set_trace()
-        plt.savefig("{figdir}/curve_dim5.2.png".format(figdir=os.path.dirname(self.log_dir)))
-        plt.savefig("{figdir}/curve_dim5.2.eps".format(figdir=os.path.dirname(self.log_dir)))
 
 
 def main(config):
