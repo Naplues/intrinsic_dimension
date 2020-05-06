@@ -116,12 +116,6 @@ def trim(df, common):
         return df_trim
 
 
-def intersect(a, b):
-        # not in use
-        """ return the intersection of two lists """
-        return list(set(a) & set(b))
-
-
 def merge1(testing, list1, list2):
         # not in use
         """
