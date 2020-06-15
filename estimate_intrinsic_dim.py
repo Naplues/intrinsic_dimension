@@ -25,6 +25,17 @@ class Solver(object):
         self.dataset = dataset
         self.log_dir = config.log_dir
         # self.logrs = config.logrs
+        
+    def compute_pairwise_l2distance(self):
+        print('ues L2 norm to compute the distance')
+        num_samples = len(self.dataset)
+        samples = self.dataset.samples
+        # pdb.set_trace()
+        R,C = np.triu_indices(num_samples,1)    # Denote N = num_samples
+        pair_innerdot = np.einsum('ij,ij->i', samples[R,:], samples[C,:]) 
+        # shape: (Nx(N-1)/2,) items are uptriangular part of mat [(Xi, Xj)], () denotes inner product
+        norm = np.einsum('ij,ij->i', samples, samples)  # shape: (N,)
+        return norm[R] + norm[C] - 2*pair_innerdot    
     
     def compute_pairwise_l1distance(self):
         print('ues L1 norm to compute the distance')
