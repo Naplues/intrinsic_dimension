@@ -364,7 +364,8 @@ def main(config):
                                 print(">> creating intrinsic dimension solver")
                                 solver = IntrinDimSolver(dataset, config)
                                 print(">> solving...")
-                                solver.show_curve(config.logrs)
+                                solver.show_curve(config.logrs, version=1)
+                                # version = 1 or 2 : L1 or L2
                                 print(">> task finished")
 
 if __name__ == "__main__":
