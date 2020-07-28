@@ -5,6 +5,7 @@ from os.path import join
 from dataset import Config as DatasetConfig
 from dataset import Dataset
 import pdb
+from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
@@ -48,19 +49,66 @@ class Solver(object):
 
         return l1norm
         
+    def optimized_pairwise_l1distance(self):
+        print('ues L1 norm to compute the distance')
+        num_samples = len(self.dataset)
+        samples = self.dataset.samples
+        """
+        samples: matrix of size NxD
+        Returns: NxN matrix D, with entry D_ij = manhattan or L1 distance between rows X_i and X_j
+        """
+        D = cdist(samples, samples, metric='cityblock')
+        iu1 = np.triu_indices(num_samples)
+        D[iu1] = float('inf')
+        # set the upper-triangular as Positive infinity
+        return D
+        
+    def optimized_pairwise_l2distance(self):
+        print('ues L2 norm to compute the distance')
+        num_samples = len(self.dataset)
+        samples = self.dataset.samples
+        """
+        samples: matrix of size NxD
+        Returns: NxN matrix D, with entry D_ij = squared euclidean distance between rows X_i and X_j
+        """
+        # Math? See https://stackoverflow.com/questions/37009647
+        sum_X = np.sum(np.square(samples), 1)
+        D = np.add(np.add(-2 * np.dot(samples, samples.T), sum_X).T, sum_X)
+        # **0.5 ?
+        iu1 = np.triu_indices(num_samples)
+        D[iu1] = float('inf')
+        # set the upper-triangular as Positive infinity
+        return D
+
+    def optimized_compute_Cr(self, distances, r):
+        num_samples = len(distances)
+        return np.sum(distances < r) / (0.5*num_samples*(num_samples-1))
+
+        
     def compute_Cr(self, distances, r):
         return np.sum(distances < r) / len(distances)
         
-    def show_curve(self, logrs):
+    def show_curve(self, logrs, version=1):
         start, end, step = logrs.split(":")
         assert int(step) > 0
         logrs = np.linspace(float(start), float(end), num=int(step))
         rs = np.exp(logrs)
-        distances = self.compute_pairwise_l1distance()
+        # distances = self.compute_pairwise_l1distance()
+        
+        # if version == 1:
+        #     distances = self.compute_pairwise_l1distance()
+        # else:
+        #     distances = self.compute_pairwise_l2distance()
+        
+        if version == 1:
+            distances = self.optimized_pairwise_l1distance()
+        else:
+            distances = self.optimized_pairwise_l2distance()
 
         logCrs = []
         for r in rs:
-            logCrs.append(self.compute_Cr(distances, r))
+            logCrs.append(self.optimized_compute_Cr(distances, r))
+            # logCrs.append(self.compute_Cr(distances, r))
         logCrs = np.log(np.array(logCrs))
         logCrs_d = (logCrs - logCrs[[*range(1,len(logCrs)), -1]]) / (logrs[0] - logrs[1])
         logCrs_d = logCrs_d[~np.isnan(logCrs_d)]
